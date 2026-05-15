@@ -13,7 +13,8 @@ import {
   vec3,
   float,
   instanceIndex,
-  attributeArray,
+  vertexIndex,
+  instancedArray,
   color,
   fract,
   sin,
@@ -72,9 +73,10 @@ export class ComputeParticles implements Generator {
   }
 
   private createBuffers(count: number) {
-    this.positionBuffer = attributeArray(count, 'vec3')
-    this.originBuffer = attributeArray(count, 'vec3')
-    this.seedBuffer = attributeArray(count, 'vec2')
+    // Use instancedArray (storage buffer) - we'll access via explicit vertexIndex
+    this.positionBuffer = instancedArray(count, 'vec3')
+    this.originBuffer = instancedArray(count, 'vec3')
+    this.seedBuffer = instancedArray(count, 'vec2')
 
     const posArray = this.positionBuffer.value.array as Float32Array
     const originArray = this.originBuffer.value.array as Float32Array
@@ -155,32 +157,36 @@ export class ComputeParticles implements Generator {
     const uColorA = this.uColorA
     const uColorB = this.uColorB
 
-    const posAttr = this.positionBuffer.toAttribute()
-    const sizeAttr = this.seedBuffer.toAttribute()
+    // Read from storage buffer via explicit vertexIndex (avoids toAttribute() ambiguity)
+    const pos = this.positionBuffer.element(vertexIndex)
+    const seedSize = this.seedBuffer.element(vertexIndex)
 
-    const sizeNode = sizeAttr.y.mul(uPointSize).mul(
+    const sizeNode = seedSize.y.mul(uPointSize).mul(
       float(200).div(abs(positionView.z).add(0.01))
     )
 
     const colorNode = mix(
       uColorA,
       uColorB,
-      clamp(posAttr.x.mul(0.1).add(0.5), 0, 1)
+      clamp(pos.x.mul(0.1).add(0.5), 0, 1)
     )
 
     this.material = new PointsNodeMaterial({
-      colorNode: colorNode,
-      sizeNode: sizeNode,
-      positionNode: posAttr,
       sizeAttenuation: true,
       transparent: true,
       depthWrite: false,
       blending: AdditiveBlending,
     })
 
+    this.material.colorNode = colorNode
+    this.material.sizeNode = sizeNode
+    this.material.positionNode = pos
+
+    // Geometry just needs to have the right vertex count
     const geometry = new BufferGeometry()
     const positions = new Float32Array(count * 3)
     geometry.setAttribute('position', new BufferAttribute(positions, 3))
+    geometry.setDrawRange(0, count)
 
     this.points = new Points(geometry, this.material)
     this.points.frustumCulled = false
