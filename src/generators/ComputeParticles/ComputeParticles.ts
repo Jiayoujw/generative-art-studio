@@ -15,6 +15,7 @@ import {
   instancedArray,
   color,
   fract,
+  sin,
   length,
   normalize,
   mix,
