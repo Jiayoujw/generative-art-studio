@@ -13,8 +13,7 @@ import {
   vec3,
   float,
   instanceIndex,
-  vertexIndex,
-  instancedArray,
+  attributeArray,
   color,
   fract,
   sin,
@@ -73,10 +72,9 @@ export class ComputeParticles implements Generator {
   }
 
   private createBuffers(count: number) {
-    // Use instancedArray (storage buffer) - we'll access via explicit vertexIndex
-    this.positionBuffer = instancedArray(count, 'vec3')
-    this.originBuffer = instancedArray(count, 'vec3')
-    this.seedBuffer = instancedArray(count, 'vec2')
+    this.positionBuffer = attributeArray(count, 'vec3')
+    this.originBuffer = attributeArray(count, 'vec3')
+    this.seedBuffer = attributeArray(count, 'vec2')
 
     const posArray = this.positionBuffer.value.array as Float32Array
     const originArray = this.originBuffer.value.array as Float32Array
@@ -102,6 +100,10 @@ export class ComputeParticles implements Generator {
       seedArray[i * 2] = Math.random()
       seedArray[i * 2 + 1] = 0.3 + Math.random() * 0.7
     }
+
+    this.positionBuffer.value.needsUpdate = true
+    this.originBuffer.value.needsUpdate = true
+    this.seedBuffer.value.needsUpdate = true
   }
 
   private createComputeShader(count: number) {
@@ -157,9 +159,9 @@ export class ComputeParticles implements Generator {
     const uColorA = this.uColorA
     const uColorB = this.uColorB
 
-    // Read from storage buffer via explicit vertexIndex (avoids toAttribute() ambiguity)
-    const pos = this.positionBuffer.element(vertexIndex)
-    const seedSize = this.seedBuffer.element(vertexIndex)
+    // Convert storage buffers to attribute nodes for vertex shader access
+    const pos = this.positionBuffer.toAttribute()
+    const seedSize = this.seedBuffer.toAttribute()
 
     const sizeNode = seedSize.y.mul(uPointSize).mul(
       float(200).div(abs(positionView.z).add(0.01))
