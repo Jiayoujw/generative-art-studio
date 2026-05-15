@@ -15,16 +15,7 @@ export function Canvas({ renderer }: CanvasProps) {
     if (!el || mountedRef.current) return
 
     mountedRef.current = true
-
-    // WebGPU renderer needs async init
-    const doMount = async () => {
-      if ('init' in renderer && typeof renderer.init === 'function') {
-        await renderer.init()
-      }
-      renderer.mount(el)
-    }
-
-    doMount()
+    renderer.mount(el)
 
     const ro = new ResizeObserver(() => {
       renderer.resize()

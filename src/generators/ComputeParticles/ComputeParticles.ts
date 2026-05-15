@@ -1,8 +1,7 @@
 import {
-  PointsNodeMaterial,
-  BufferGeometry,
-  BufferAttribute,
-  Points,
+  InstancedMesh,
+  SpriteNodeMaterial,
+  PlaneGeometry,
   Scene,
   PerspectiveCamera,
   AdditiveBlending,
@@ -11,9 +10,10 @@ import {
   Fn,
   uniform,
   vec3,
+  vec2,
   float,
   instanceIndex,
-  attributeArray,
+  instancedArray,
   color,
   fract,
   sin,
@@ -21,8 +21,6 @@ import {
   normalize,
   mix,
   clamp,
-  abs,
-  positionView,
 } from 'three/tsl'
 import type { Generator } from '../Generator'
 import { getComputeParticleControls } from './controls'
@@ -34,8 +32,8 @@ export class ComputeParticles implements Generator {
 
   private scene = new Scene()
   private camera = new PerspectiveCamera(60, 1, 0.1, 100)
-  private points: Points | null = null
-  private material: PointsNodeMaterial | null = null
+  private mesh: InstancedMesh | null = null
+  private material: SpriteNodeMaterial | null = null
   private computeNode: any = null
   private params: Record<string, unknown> = {}
 
@@ -72,9 +70,9 @@ export class ComputeParticles implements Generator {
   }
 
   private createBuffers(count: number) {
-    this.positionBuffer = attributeArray(count, 'vec3')
-    this.originBuffer = attributeArray(count, 'vec3')
-    this.seedBuffer = attributeArray(count, 'vec2')
+    this.positionBuffer = instancedArray(count, 'vec3')
+    this.originBuffer = instancedArray(count, 'vec3')
+    this.seedBuffer = instancedArray(count, 'vec2')
 
     const posArray = this.positionBuffer.value.array as Float32Array
     const originArray = this.originBuffer.value.array as Float32Array
@@ -155,44 +153,32 @@ export class ComputeParticles implements Generator {
   }
 
   private createMaterial(count: number) {
-    const uPointSize = this.uPointSize
-    const uColorA = this.uColorA
-    const uColorB = this.uColorB
-
-    // Convert storage buffers to attribute nodes for vertex shader access
     const pos = this.positionBuffer.toAttribute()
     const seedSize = this.seedBuffer.toAttribute()
 
-    const sizeNode = seedSize.y.mul(uPointSize).mul(
-      float(200).div(abs(positionView.z).add(0.01))
-    )
-
     const colorNode = mix(
-      uColorA,
-      uColorB,
+      this.uColorA,
+      this.uColorB,
       clamp(pos.x.mul(0.1).add(0.5), 0, 1)
     )
 
-    this.material = new PointsNodeMaterial({
-      sizeAttenuation: true,
+    const scaleNode = vec2(seedSize.y.mul(this.uPointSize).mul(0.08))
+
+    this.material = new SpriteNodeMaterial({
       transparent: true,
       depthWrite: false,
       blending: AdditiveBlending,
     })
 
     this.material.colorNode = colorNode
-    this.material.sizeNode = sizeNode
     this.material.positionNode = pos
+    this.material.scaleNode = scaleNode
+    this.material.sizeAttenuation = true
 
-    // Geometry just needs to have the right vertex count
-    const geometry = new BufferGeometry()
-    const positions = new Float32Array(count * 3)
-    geometry.setAttribute('position', new BufferAttribute(positions, 3))
-    geometry.setDrawRange(0, count)
-
-    this.points = new Points(geometry, this.material)
-    this.points.frustumCulled = false
-    this.scene.add(this.points)
+    const geometry = new PlaneGeometry(1, 1)
+    this.mesh = new InstancedMesh(geometry, this.material, count)
+    this.mesh.frustumCulled = false
+    this.scene.add(this.mesh)
   }
 
   private setupMouseInteraction() {
@@ -252,11 +238,26 @@ export class ComputeParticles implements Generator {
       if (obj.material) obj.material.dispose()
     })
     this.scene.clear()
-    this.points = null
+    if (this.mesh) {
+      this.mesh.dispose()
+    }
+    this.mesh = null
     this.material = null
-    this.computeNode = null
-    this.positionBuffer = null
-    this.originBuffer = null
-    this.seedBuffer = null
+    if (this.computeNode) {
+      this.computeNode.dispose()
+      this.computeNode = null
+    }
+    if (this.positionBuffer) {
+      this.positionBuffer.dispose()
+      this.positionBuffer = null
+    }
+    if (this.originBuffer) {
+      this.originBuffer.dispose()
+      this.originBuffer = null
+    }
+    if (this.seedBuffer) {
+      this.seedBuffer.dispose()
+      this.seedBuffer = null
+    }
   }
 }

@@ -83,8 +83,12 @@ export class WebGPURendererEngine {
     this.lastTime = time
 
     if (this.onRender) {
-      this.clock.tick(delta)
-      this.onRender(this.clock.elapsed, delta)
+      try {
+        this.clock.tick(delta)
+        this.onRender(this.clock.elapsed, delta)
+      } catch (err) {
+        console.error('WebGPURendererEngine: frame error:', err)
+      }
     }
   }
 
@@ -104,9 +108,6 @@ export class WebGPURendererEngine {
   }
 
   async captureFrameBlob(): Promise<Blob | null> {
-    const scene = new Scene()
-    const camera = new Camera()
-    await this.renderer.renderAsync(scene, camera)
     return new Promise((resolve) => {
       this.renderer.domElement.toBlob(
         (blob) => resolve(blob),

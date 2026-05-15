@@ -72,8 +72,12 @@ export class Renderer {
     this.lastTime = time
 
     if (this.onRender) {
-      const elapsed = this.clock.tick(delta)
-      this.onRender(elapsed, delta)
+      try {
+        const elapsed = this.clock.tick(delta)
+        this.onRender(elapsed, delta)
+      } catch (err) {
+        console.error('Renderer: frame error:', err)
+      }
     }
   }
 
