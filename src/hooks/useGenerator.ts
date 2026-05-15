@@ -18,5 +18,5 @@ export function useGenerator() {
     }
   }, [params, generator])
 
-  return { generator, params, setParams: set }
+  return { generator, params, setParams: set as (params: Record<string, unknown>) => void }
 }

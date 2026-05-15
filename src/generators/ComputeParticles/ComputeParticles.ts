@@ -1,33 +1,27 @@
 import {
-  WebGPURenderer,
   PointsNodeMaterial,
   BufferGeometry,
   BufferAttribute,
   Points,
   Scene,
   PerspectiveCamera,
-  Color,
 } from 'three/webgpu'
 import {
   Fn,
   uniform,
   vec3,
-  vec2,
   float,
   instanceIndex,
   instancedArray,
   color,
-  sin,
-  cos,
   fract,
   length,
   normalize,
   mix,
   clamp,
   abs,
-  time,
   positionView,
-  timerGlobal,
+  If,
 } from 'three/tsl'
 import type { Generator } from '../Generator'
 import { getComputeParticleControls } from './controls'

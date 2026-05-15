@@ -19,7 +19,7 @@ export class ParticleGenerator implements Generator {
     this.camera.position.z = 15
   }
 
-  init(renderer: THREE.WebGLRenderer) {
+  init(_renderer: THREE.WebGLRenderer) {
     this.createParticles(25000)
     this.updateMaterial()
   }

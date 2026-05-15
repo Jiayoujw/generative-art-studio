@@ -14,16 +14,22 @@ export interface ExportProgress {
 export type ExportProgressCallback = (progress: ExportProgress) => void
 
 export class ExportManager {
+  renderer: Renderer | WebGPURendererEngine
+  sceneManager: SceneManager
+
   constructor(
-    private renderer: Renderer | WebGPURendererEngine,
-    private sceneManager: SceneManager,
-  ) {}
+    renderer: Renderer | WebGPURendererEngine,
+    sceneManager: SceneManager,
+  ) {
+    this.renderer = renderer
+    this.sceneManager = sceneManager
+  }
 
   async exportPNG(filename?: string): Promise<void> {
     const gen = this.sceneManager.getCurrentGenerator()
     if (!gen) return
 
-    this.renderer.render(gen.getScene(), gen.getCamera())
+    this.renderer.render(gen.getScene() as any, gen.getCamera() as any)
     const blob = await this.renderer.captureFrameBlob()
     if (blob) {
       const name = filename ?? `gas-export-${Date.now()}.png`
@@ -104,7 +110,7 @@ export class ExportManager {
     for (let i = 0; i < totalFrames; i++) {
       const t = (i / fps)
       gen.update(t, 1 / fps)
-      this.renderer.render(scene, camera)
+      this.renderer.render(scene as any, camera as any)
 
       ctx.clearRect(0, 0, w, h)
       ctx.drawImage(canvas, 0, 0, w, h)
@@ -126,7 +132,7 @@ export class ExportManager {
     }
 
     const bytes = encoder.finish()
-    const blob = new Blob([bytes], { type: 'image/gif' })
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'image/gif' })
     const name = `gas-export-${Date.now()}.gif`
     saveAs(blob, name)
 

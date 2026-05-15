@@ -1,5 +1,5 @@
 import { WebGPURenderer } from 'three/webgpu'
-import type { Scene, Camera } from 'three'
+import { Scene, Camera } from 'three'
 
 export class WebGPURendererEngine {
   private renderer: WebGPURenderer
@@ -7,7 +7,7 @@ export class WebGPURendererEngine {
   private isRunning = false
   private lastTime = 0
   private initialized = false
-  private clock: { elapsed: number; tick: (dt: number) => number }
+  private clock: { elapsed: number; tick: (dt: number) => void }
 
   onRender?: (time: number, delta: number) => void
 
@@ -23,7 +23,6 @@ export class WebGPURendererEngine {
       elapsed: 0,
       tick: (dt: number) => {
         this.clock.elapsed += dt
-        return this.clock.elapsed
       },
     }
   }
@@ -84,8 +83,8 @@ export class WebGPURendererEngine {
     this.lastTime = time
 
     if (this.onRender) {
-      const elapsed = this.clock.tick(delta)
-      this.onRender(elapsed, delta)
+      this.clock.tick(delta)
+      this.onRender(this.clock.elapsed, delta)
     }
   }
 
@@ -105,7 +104,9 @@ export class WebGPURendererEngine {
   }
 
   async captureFrameBlob(): Promise<Blob | null> {
-    await this.renderer.renderAsync(new Scene(), new Camera())
+    const scene = new Scene()
+    const camera = new Camera()
+    await this.renderer.renderAsync(scene, camera)
     return new Promise((resolve) => {
       this.renderer.domElement.toBlob(
         (blob) => resolve(blob),

@@ -35,7 +35,6 @@ export default function App() {
   )
 
   const [activeRendererType, setActiveRendererType] = useState<'webgl' | 'webgpu'>('webgl')
-  const [webgpuReady, setWebgpuReady] = useState(false)
 
   const generatorId = useStudioStore((s) => s.generatorId)
   const setGenerator = useStudioStore((s) => s.setGenerator)
@@ -50,7 +49,6 @@ export default function App() {
       setWebGPUAvailable(available)
       if (available) {
         await webgpuRendererRef.current.init()
-        setWebgpuReady(true)
       }
     }
     checkWebGPU()
